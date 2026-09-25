@@ -2,17 +2,26 @@ import { useState } from 'react'
 
 function App() {
   const [selectedType, setSelectedType] = useState('')
+  const [matchup, setMatchup] = useState(null)
   const types = ['Fire', 'Water', 'Grass', 'Ground']
 
-    function getMatchup(type) {
-        // API CALL WILL GO HERE, AND WE WILL RETURN THE RESPONSE
-        return `Fake API response: You are fighting a ${type}-type Pokémon.`;
+  async function getMatchup(type) {
+    try {
+      const response = await fetch(`http://localhost:3000/api/type/${encodeURIComponent(type.toLowerCase())}`)
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('Unable to get matchup:', error)
+      return { error: 'Unable to load matchup. Please try again.' }
     }
+  }
 
-    function handleTypeClick(type) {
-        const response = getMatchup(type);
-        setSelectedType(response);
-    }
+  async function handleTypeClick(type) {
+    setSelectedType(type)
+    setMatchup(await getMatchup(type))
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-amber-50 px-5 py-12 text-slate-900">
@@ -30,7 +39,7 @@ function App() {
               key={type}
               type="button"
               aria-pressed={selectedType === type}
-              onClick={() => handleTypeClick(type.name)}
+              onClick={() => handleTypeClick(type)}
               className={`rounded-xl border-2 px-4 py-3 font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 ${selectedType === type ? 'border-slate-900 bg-red-500 text-white shadow-[3px_3px_0_#1e293b]' : 'border-slate-200 bg-amber-50 hover:border-red-400 hover:bg-red-50'}`}
             >
               {type}
@@ -38,9 +47,14 @@ function App() {
           ))}
         </div>
 
-        <p aria-live="polite" className="mt-6 min-h-6 text-sm font-medium text-slate-600">
-          {selectedType}
-        </p>
+        <div aria-live="polite" className="mt-6 min-h-6 text-sm font-medium text-slate-600">
+          {matchup?.error || (matchup && (
+            <>
+              <p>Half damage to: {matchup.half_damage_to.join(', ') || 'none'}</p>
+              <p>Double damage from: {matchup.double_damage_from.join(', ') || 'none'}</p>
+            </>
+          ))}
+        </div>
       </section>
     </main>
   )
